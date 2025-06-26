@@ -1,0 +1,13 @@
+conn = sqlite3.connect('data/bot/ocorrencias.db')  
+cursor = conn.cursor()  
+cursor.execute('''  
+    CREATE TABLE IF NOT EXISTS relatos (  
+        id INTEGER PRIMARY KEY AUTOINCREMENT,  
+        texto TEXT,  
+        data_registro TIMESTAMP,  
+        usuario TEXT  
+        -- (adicione outras colunas conforme necessário)  
+    )  
+''')  
+conn.commit()  
+conn.close()  
