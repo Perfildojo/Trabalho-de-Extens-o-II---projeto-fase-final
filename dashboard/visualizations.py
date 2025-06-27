@@ -1,5 +1,9 @@
 import plotly.express as px
 import pandas as pd
+from dashboard.database import carregar_dados
+from datetime import datetime, timedelta
+import streamlit as st
+
 
 def criar_mapa(dados):
     """Gera mapa interativo com clusters"""
