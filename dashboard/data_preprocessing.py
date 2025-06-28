@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).parent.parent
 RAW_DIR = BASE_DIR / "data" / "raw"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-PROCESSED_PATH = PROCESSED_DIR / "ocorrencias_processadas.sql"
+PROCESSED_PATH = PROCESSED_DIR / "ocorrencias_processadas.csv"
 
 # Configuração de logging
 logging.basicConfig(

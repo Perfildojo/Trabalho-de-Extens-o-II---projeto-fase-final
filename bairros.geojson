@@ -1,0 +1,71 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "nome": "Benedito Bentes"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -35.738,
+                            -9.567
+                        ],
+                        [
+                            -35.728,
+                            -9.567
+                        ],
+                        [
+                            -35.728,
+                            -9.577
+                        ],
+                        [
+                            -35.738,
+                            -9.577
+                        ],
+                        [
+                            -35.738,
+                            -9.567
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "nome": "Vergel do Lago"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -35.725,
+                            -9.679
+                        ],
+                        [
+                            -35.72,
+                            -9.679
+                        ],
+                        [
+                            -35.72,
+                            -9.685
+                        ],
+                        [
+                            -35.725,
+                            -9.685
+                        ],
+                        [
+                            -35.725,
+                            -9.679
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

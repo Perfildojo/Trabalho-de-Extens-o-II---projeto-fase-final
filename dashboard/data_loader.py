@@ -2,93 +2,76 @@ import pandas as pd
 from pathlib import Path
 import logging
 from typing import Optional
+import json
 
-# Configuração
 BASE_DIR = Path(__file__).parent.parent
-CSV_PATH = BASE_DIR / "data" / "processed" / "ocorrencias_processadas.csv"
+CSV_PATH = BASE_DIR / "data" / "processed" / "dados_processados.csv"
 
-# Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def carregar_csv_processado() -> Optional[pd.DataFrame]:
-    """Carrega e padroniza o CSV com suas colunas específicas"""
-    if not CSV_PATH.exists():
-        logger.error(f"Arquivo não encontrado: {CSV_PATH}")
-        return None
-        
+def calcular_coordenadas(df, geojson_path):
     try:
-        # Carrega mantendo todas as colunas originais
+        with open(geojson_path, "r") as f:
+            bairros_geojson = json.load(f)
+
+        df['lat'] = None
+        df['lon'] = None
+
+        for feature in bairros_geojson['features']:
+            bairro = feature['properties']['nome']
+            coords = feature['geometry']['coordinates'][0]
+            lats = [p[1] for p in coords]
+            lons = [p[0] for p in coords]
+            lat = sum(lats) / len(lats)
+            lon = sum(lons) / len(lons)
+            df.loc[df['BAIRRO DO FATO'] == bairro, 'lat'] = lat
+            df.loc[df['BAIRRO DO FATO'] == bairro, 'lon'] = lon
+
+        return df
+    except Exception as e:
+        logger.error(f"Erro ao calcular coordenadas: {e}")
+        return df
+
+def carregar_dados() -> Optional[pd.DataFrame]:
+    try:
+        logger.info(f"Carregando dados de: {CSV_PATH}")
+
         df = pd.read_csv(
             CSV_PATH,
             delimiter=',',
-            encoding='latin1',
-            parse_dates=['DATA DO FATO', 'data_registro'],
-            dayfirst=True  # Importante para datas no formato dd/mm/yyyy
+            encoding='utf-8',
+            parse_dates=['DATA DO FATO'],
+            dayfirst=True,
+            dtype={
+                'BAIRRO DO FATO': 'str',
+                'SUBJETIVIDADE COMPLEMENTAR': 'str',
+                'CIDADE DO FATO': 'str',
+                'SEXO DA VITIMA': 'str',
+                'COR/RACA DA VITIMA': 'str',
+                'LOCAL DO FATO': 'str'
+            }
         )
-        
-        # Padroniza nomes e conteúdo
-        df = df.rename(columns={
-            'BAIRRO DO FATO': 'bairro',
-            'SUBJETIVIDADE': 'ocorrencia',
-            'DATA DO FATO': 'data',
-            'LOCAL DO FATO': 'rua',
-            'HORA DO FATO': 'hora'
-        })
-        
-        # Filtra apenas Maceió
-        df = df[df['CIDADE DO FATO'] == 'Maceió']
-        
-        # Limpeza e transformações
-        df = df.assign(
-            bairro=df['bairro'].str.title().fillna('DESCONHECIDO'),
-            ocorrencia=df['ocorrencia'].str.replace('CVLI', 'Crime Violento').str.title(),
-            data=pd.to_datetime(df['data']),
-            rua=df['rua'].fillna('VIA PÚBLICA').str.title(),
-            cidade='Maceió',
-            fonte='oficial'
-        )
-        
-        # Seleciona e ordena colunas
-        cols_principais = [
-            'data', 'bairro', 'ocorrencia', 'rua', 
-            'hora', 'SEXO DA VITIMA', 'IDADE DA VITIMA',
-            'INSTRUMENTO UTILIZADO', 'fonte'
-        ]
-        
-        return df[cols_principais].sort_values('data', ascending=False)
-        
+
+        df = calcular_coordenadas(df, "bairros.geojson")
+        df = df[df['CIDADE DO FATO'].str.strip().str.lower() == 'maceió']
+        df = df.dropna(subset=['BAIRRO DO FATO', 'SUBJETIVIDADE COMPLEMENTAR'])
+
+        df['BAIRRO DO FATO'] = df['BAIRRO DO FATO'].str.strip().str.title()
+        df['SUBJETIVIDADE COMPLEMENTAR'] = df['SUBJETIVIDADE COMPLEMENTAR'].str.strip().str.title()
+        df['SEXO DA VITIMA'] = df['SEXO DA VITIMA'].str.strip().str.title()
+
+        logger.info(f"Dados carregados com sucesso. Total de registros: {len(df)}")
+        return df
+
+    except FileNotFoundError:
+        logger.error(f"Arquivo não encontrado: {CSV_PATH}")
+        return None
     except Exception as e:
-        logger.error(f"Erro ao processar CSV: {e}", exc_info=True)
+        logger.error(f"Erro ao carregar dados: {e}", exc_info=True)
         return None
 
-def gerar_csv_exemplo():
-    """Gera um CSV de exemplo com sua estrutura"""
-    dados = {
-        'D_CONTROLE': [1, 2],
-        'SUBJETIVIDADE': ['CVLI', 'Roubo'],
-        'DATA DO FATO': ['29/05/2012', '30/05/2012'],
-        'BAIRRO DO FATO': ['Benedito Bentes', 'Vergel'],
-        'CIDADE DO FATO': ['Maceió', 'Maceió'],
-        'LOCAL DO FATO': ['Rua X', 'Avenida Y']
-    }
-    df = pd.DataFrame(dados)
-    df.to_csv(CSV_PATH, index=False, encoding='latin1')
-    print(f"CSV exemplo gerado em: {CSV_PATH}")
-
 if __name__ == "__main__":
-    # Teste
-    print("=== Teste de Leitura ===")
-    df = carregar_csv_processado()
-    
+    df = carregar_dados()
     if df is not None:
-        print("\nDados carregados:")
         print(df.head())
-        print(f"\nTotal de registros: {len(df)}")
-        print(f"Período: {df['data'].min().date()} a {df['data'].max().date()}")
-    else:
-        print("\n❌ Falha ao carregar dados. Gerando exemplo...")
-        gerar_csv_exemplo()
